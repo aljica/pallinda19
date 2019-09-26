@@ -28,6 +28,4 @@ func main() {
       totalSum += <-ch
     }
     fmt.Println(totalSum)
-
-    // what about for val := range ch {} ??? check it out...?
 }
