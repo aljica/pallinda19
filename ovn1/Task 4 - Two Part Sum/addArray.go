@@ -23,15 +23,11 @@ func main() {
 
     // TODO: Get the subtotals from the channel and print their sum.
 
-    //totalSum := 0
-    for {
-      //totalSum += <-ch
-      //fmt.Println(totalSum)
-      fmt.Println(<-ch)
+    totalSum := 0
+    for i:=0; i<2; i++ {
+      totalSum += <-ch
     }
+    fmt.Println(totalSum)
 
-    /*for val := range ch {
-      all += val
-      fmt.Println(all)
-    }*/
+    // what about for val := range ch {} ??? check it out...?
 }
