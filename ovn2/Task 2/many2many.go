@@ -17,7 +17,7 @@ func main() {
 
 	const strings = 32
 	const producers = 4
-	const consumers = 2
+	const consumers = 8
 
 	before := time.Now()
 	ch := make(chan string)
