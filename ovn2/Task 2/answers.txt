@@ -1,0 +1,68 @@
+1) What happens if you switch the order of the statements
+wgp.Wait() and close(ch) in the end of the main function?
+
+If we close the channel right after running the for-loops,
+we will encounter a runtime error because we would still have
+several instances of function calls to both Produce() and
+Consume() active, and because both of those functions utilize
+the channel, an error will be raised.
+
+Result: "panic: send on closed channel". Exactly.
+
+2) What happens if you move the close(ch) from the main function
+and instead close the channel in the end of the function Produce?
+
+Once again "panic: send on closed channel" will appear because
+as soon as one of the Produce() function calls terminate (whichever
+one gets there first, of the 4 goroutines we have), the channel
+will be closed and the remaining Produce() function calls will be
+unable to send over the channel, and likewise the remaining
+Consume() function calls will be unable to receive on the channel.
+
+Result: We get a panic, but of course we also see several lines
+printed before the panic is raised. This is easily explained.
+Almost simultaneously, there will be 4 Produce() function calls
+running and 2 Consume() function calls. As they all run their
+individual function calls, they will get quite far in the process
+of producing and consuming strings, up until one of the Produce()
+function calls (whichever happens to be fastest) reaches the end
+of its for-loop, at which point the channel will close and the
+remaining strings to be sent across the channel will be unable
+to go across. At that point, and by definition of runtime error,
+Golang will raise the appropriate panic exception.
+
+3) What happens if you remove the statement close(ch) completely?
+
+The program will run the same as before. The reason is we are using
+a waitgroup, which will wait for all data to be transmitted across
+our channel, after which we know we're done. So all data will
+still be sent just as usual.
+
+For main() to exit,
+it is not a requirement to close an active channel. Therefore,
+main() finishes with the fmt.Println()-line and the program
+terminates.
+
+4) What happens if you increase the number of consumers from 2 to 4?
+
+We will have c0-c3 for the 32 strings given by p0-p3.
+So everything will run faster, because we will essentially be using
+more threads, i.e. 4 concurrent consumers instead of 2. So we'll
+be able to receive the strings at a faster rate. But then more
+memory is used.
+
+5) Can you be sure that all strings are printed before
+the program stops?
+
+No, we cannot be sure of this. The reason is that we don't
+actually wait for our Consume() function calls to finish.
+Because of this, we can't say for sure that there will
+be enough time for our final Consume() goroutine to
+print the final produced string after receiving it, before the
+main() function exits.
+
+In a test case, if we added RandomSleep(100) before our fmt.Println()
+in Consume(), we saw that (given a long enough delay) the last of the
+4 final strings (a 7) was not printed.
+
+In the final version of many2many.go, this has been fixed.
