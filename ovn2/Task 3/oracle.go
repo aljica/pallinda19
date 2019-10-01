@@ -36,15 +36,56 @@ func main() {
 	}
 }
 
+func answerQuestion(q string, answer chan string) {
+	time.Sleep(3 * time.Second)
+	replies := []string{"That's not accurate",
+		"Please, don't ask that!",
+		"Forget it - I won't tell!",
+		"Maybe...",
+		"That's reverse psychology. I know what you're up to!",
+		"Stop asking so many questions, will ya?",
+		"Forget about it.",
+		"Where's Joe?"}
+	answer <- replies[rand.Intn(len(replies))]
+}
+
+func receiveQuestion(questions <-chan string, answer chan string) {
+	for q := range questions {
+		go answerQuestion(q, answer)
+	}
+}
+
+func generateProphecies(answer chan string) {
+	for {
+		time.Sleep(10 * time.Second)
+		prophecy("", answer)
+	}
+}
+
+func receivePropheciesAndAnswers(answer chan string) {
+	for a := range answer {
+		for _, char := range strings.Split(a, "") {
+			fmt.Print(char)
+			time.Sleep(time.Duration(35+rand.Intn(265)) * time.Millisecond)
+		}
+		fmt.Println()
+		fmt.Print("> ")
+	}
+}
+
 // Oracle returns a channel on which you can send your questions to the oracle.
 // You may send as many questions as you like on this channel, it never blocks.
 // The answers arrive on stdout, but only when the oracle so decides.
 // The oracle also prints sporadic prophecies to stdout even without being asked.
 func Oracle() chan<- string {
 	questions := make(chan string)
+	answer := make(chan string)
 	// TODO: Answer questions.
+	go receiveQuestion(questions, answer)
 	// TODO: Make prophecies.
+	go generateProphecies(answer)
 	// TODO: Print answers.
+	go receivePropheciesAndAnswers(answer)
 	return questions
 }
 
@@ -69,8 +110,14 @@ func prophecy(question string, answer chan<- string) {
 	nonsense := []string{
 		"The moon is dark.",
 		"The sun is bright.",
+		"You will die some day.",
+		"Judgement Day is close.",
+		"You will be involved in an accident in the next 3 decades.",
+		"Some day, you will have children; one boy and one daughter.",
+		"If you end up not having a daughter, you will end up having two boys.",
+		"I know, therefore I tell. And so will you, once you know.",
 	}
-	answer <- longestWord + "... " + nonsense[rand.Intn(len(nonsense))]
+	answer <- "\n" + prompt + longestWord + "... " + nonsense[rand.Intn(len(nonsense))]
 }
 
 func init() { // Functions called "init" are executed before the main function.
