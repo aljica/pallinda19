@@ -60,31 +60,41 @@ func Get(url string, client *http.Client) *Response {
 // If none of the servers answer before timeout, the response is 503
 // – Service unavailable.
 func MultiGet(urls []string, client *http.Client) *Response {
-  reply := make(chan *Response)
-  timeoutReached := make(chan bool)
-  timeout := false
+	reply := make(chan *Response)
+	answer := make(chan *Response)
 
-  for i := range urls {
-    go func(i int) {
-      reply <- Get(urls[i], client)
-    }(i)
-  }
+	for i := range urls {
+		go func(i int) {
+			reply <- Get(urls[i], client)
+		}(i)
+	}
 
-  timer := time.NewTimer(500 * time.Millisecond)
-  go func() {
-    <-timer.C
-    timeoutReached <- true
-  }()
+	// Timer
+	timer := time.NewTimer(500 * time.Millisecond)
 
-  //res := <-reply
-  var res Response
-  for {
-    res := <-reply
-  }
+	i := 0
 
-  if (<-timeoutReached) {
-    res = Response{"Timeout", 0}
-  }
+	go func() {
+		for {
+			select {
+			case <-timer.C:
+				answer <- &Response{"Timeout", 0}
+			case res := <-reply:
+				i++
+				if res.StatusCode == 200 {
+					answer <- res
+				} else if res.StatusCode == 503 {
+					if i == 3 {
+						answer <- &Response{"Service Unavailable", 503}
+					} else {
+						continue
+					}
+				}
+			}
+		}
+	}()
 
-  return *res
+	res := <-answer
+
+	return res
 }
