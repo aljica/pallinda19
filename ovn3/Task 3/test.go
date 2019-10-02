@@ -16,12 +16,13 @@ func main() {
 	}
 
 	// Add a time limit for all requests made by this client.
-	client := &http.Client{Timeout: 10 * time.Second}
+	timeout := 200 * time.Millisecond
+	client := &http.Client{Timeout: timeout}
 
 	for {
 		before := time.Now()
-		//res := Get(server[0], client)
-		res := MultiGet(server, client)
+		// res := Get(server[0], client)
+		res := MultiGet(server, client, timeout)
 		after := time.Now()
 		fmt.Println("Response:", res)
 		fmt.Println("Time:", after.Sub(before))
@@ -59,32 +60,31 @@ func Get(url string, client *http.Client) *Response {
 // the response from the first server to answer with status code 200.
 // If none of the servers answer before timeout, the response is 503
 // – Service unavailable.
-func MultiGet(urls []string, client *http.Client) *Response {
-  reply := make(chan *Response)
-  timeoutReached := make(chan bool)
-  timeout := false
-
-  for i := range urls {
-    go func(i int) {
-      reply <- Get(urls[i], client)
-    }(i)
-  }
-
-  timer := time.NewTimer(500 * time.Millisecond)
-  go func() {
-    <-timer.C
-    timeoutReached <- true
-  }()
-
-  //res := <-reply
-  var res Response
-  for {
-    res := <-reply
-  }
-
-  if (<-timeoutReached) {
-    res = Response{"Timeout", 0}
-  }
-
-  return *res
+func MultiGet(urls []string, client *http.Client, timeout time.Duration) (res *Response) {
+	ch := make(chan *Response, len(urls))
+	for _, url := range urls {
+		go func(url string) {
+			/*
+			read := Get(url, client)
+			if read.StatusCode == 200 {
+				ch <-read
+			} */
+			ch <- Get(url, client)
+		}(url)
+	}
+	response := <-ch
+	if response.StatusCode == 200 {
+		res = response
+	} else if response.StatusCode == 503 {
+		res = &Response{"Service unavailable\n", 503}
+	}
+	/*
+	select {
+	case res = <- ch:
+		// Send response
+	case <-time.After(timeout):
+		res = &Response{"Service unavailable\n", 503}
+	}
+	*/
+	return
 }
