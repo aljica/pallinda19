@@ -15,11 +15,14 @@ func main() {
 	go Print(ch, &waitgroup)
 
 	for i := 1; i <= 11; i++ {
-		ch <- i
+		ch <- i // This line waits until Print() is ready to receive
+		// Once Print() receives, the for-loop moves on to the next iteration.
 	}
 
-	close(ch)
-	waitgroup.Wait()
+	close(ch) // Because of the above (see comments), we can instantly
+	// close the channel upon exiting the for-loop, because it means
+	// we have transmitted all of our data through the channel ch.
+	waitgroup.Wait() // Here we just wait for Print() to finish its final Println.
 }
 
 // Print prints all numbers sent on the channel.
