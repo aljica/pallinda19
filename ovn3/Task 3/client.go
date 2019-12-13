@@ -16,7 +16,8 @@ func main() {
 	}
 
 	// Add a time limit for all requests made by this client.
-	client := &http.Client{Timeout: 10 * time.Second}
+	//client := &http.Client{Timeout: 500 * time.Millisecond}
+	client := &http.Client{}
 
 	for {
 		before := time.Now()
@@ -70,25 +71,19 @@ func MultiGet(urls []string, client *http.Client) *Response {
 	}
 
 	// Timer
-	timer := time.NewTimer(500 * time.Millisecond)
-
-	i := 0
+	timer := time.NewTimer(1500 * time.Millisecond)
 
 	go func() {
+		queryloop:
 		for {
 			select {
 			case <-timer.C:
-				answer <- &Response{"Timeout", 0}
+				answer <- &Response{"Service Unavailable", 503}
+				break queryloop
 			case res := <-reply:
-				i++
 				if res.StatusCode == 200 {
 					answer <- res
-				} else if res.StatusCode == 503 {
-					if i == 3 {
-						answer <- &Response{"Service Unavailable", 503}
-					} else {
-						continue
-					}
+					break queryloop
 				}
 			}
 		}
